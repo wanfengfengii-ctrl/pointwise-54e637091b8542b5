@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "kind": "cli",
+  "python_version": "3.11",
+  "unicode_data_version": "14.0.0",
+  "setup": [],
+  "verify": ["python3", "-B", "check_project.py"],
+  "demo": ["python3", "-B", "-m", "catalog.workroom", "demo"]
+}

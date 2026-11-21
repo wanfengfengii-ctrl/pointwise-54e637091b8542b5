@@ -1,0 +1,10 @@
+{
+  "batch_id": "north-shore-01",
+  "labels": [
+    {"row_number": 10, "original_hex": "4c696368656e"},
+    {"row_number": 20, "original_hex": "4c696368656e"},
+    {"row_number": 30, "original_hex": "c3a9cca3"},
+    {"row_number": 40, "original_hex": "65cc81cca3"},
+    {"row_number": 50, "original_hex": "65cca3cc81"}
+  ]
+}

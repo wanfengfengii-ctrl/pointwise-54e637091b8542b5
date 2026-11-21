@@ -1,0 +1,15 @@
+{
+  "proof_sheet": {
+    "sheet_id": 1,
+    "label_id": 3,
+    "revision_id": 3,
+    "view": "e\u0323\u0301",
+    "occurrences": [
+      {"position": 0, "character": "e", "byte_start": 0, "byte_end": 2, "product_index": 0},
+      {"position": 1, "character": "\u0323", "byte_start": 2, "byte_end": 4, "product_index": 0},
+      {"position": 2, "character": "\u0301", "byte_start": 0, "byte_end": 2, "product_index": 1}
+    ]
+  },
+  "change_acute": {"sheet_id": 1, "edits": [{"start": 2, "end": 3, "replacement": "\u0300"}]},
+  "reject_precomposed": {"sheet_id": 1, "edits": [{"start": 1, "end": 2, "replacement": "\u0300"}]}
+}
