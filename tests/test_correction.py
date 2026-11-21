@@ -67,6 +67,56 @@ class TestCorrection(WorkroomTestCase):
         self.assertEqual(self.reissue(result).view, 'e\u0300\u0302')
         self.assertEqual(result.revision.original, b'e\xcc\x80\xcc\x82')
 
+    def test_accent_handoff_provenance_and_identity(self):
+        # End-to-end handoff regression.  The proof sheet for precomposed \u00e9
+        # plus an independent combining dot below must report the dot and acute
+        # against their own byte spans and product indices.  Changing only the
+        # acute keeps the original dot bytes; changing only the dot is rejected
+        # for the precomposed original but accepted for the decomposition.
+        acute_label, dot_label, decomposed = self.import_labels(
+            '\u00e9\u0323', '\u00e9\u0323', 'e\u0323\u0301'
+        )
+        sheet = self.issue(acute_label)
+        self.assertEqual(tuple((item.character, item.byte_start, item.byte_end, item.product_index)
+                               for item in sheet.occurrences), (
+            ('e', 0, 2, 0),
+            ('\u0323', 2, 4, 0),
+            ('\u0301', 0, 2, 1),
+        ))
+
+        result = apply_correction(
+            self.db, CorrectionRequest(sheet.sheet_id, (AccentEdit(2, 3, '\u0300'),))
+        )
+        self.assertEqual(result.view, 'e\u0323\u0300')
+        self.assertEqual(result.revision.original, b'e\xcc\xa3\xcc\x80')
+        reissued = self.reissue(result)
+        dot = reissued.occurrences[1]
+        self.assertEqual((dot.character, result.revision.original[dot.byte_start:dot.byte_end].hex(),
+                          dot.product_index), ('\u0323', 'cca3', 0))
+
+        dot_sheet = self.issue(dot_label)
+        with self.assertRaises(UnwritableCorrection):
+            apply_correction(self.db, CorrectionRequest(dot_sheet.sheet_id, (AccentEdit(1, 2, '\u0300'),)))
+        self.assertEqual(self.settlement_counts(), (4, 1))
+
+        decomposed_sheet = self.issue(decomposed)
+        accepted = apply_correction(
+            self.db, CorrectionRequest(decomposed_sheet.sheet_id, (AccentEdit(1, 2, '\u0300'),))
+        )
+        self.assertEqual(accepted.revision.original, b'e\xcc\x80\xcc\x81')
+        self.assertEqual(self.reissue(accepted).view, 'e\u0300\u0301')
+
+    def test_failed_correction_creates_no_revision_or_receipt(self):
+        # An unwritable correction must leave the head, revision count and
+        # receipt count untouched: no new revision and no success receipt.
+        row, = self.import_labels('\u00e9\u0323')
+        sheet = self.issue(row)
+        with self.assertRaises(UnwritableCorrection):
+            apply_correction(self.db, CorrectionRequest(sheet.sheet_id, (AccentEdit(1, 2, '\u0301'),)))
+        self.assertEqual(self.settlement_counts(), (1, 0))
+        self.assertEqual(get_head(self.db, row.label_id), row.revision_id)
+
+
     def test_invalid_spans(self):
         row, plain, multi = self.import_labels('e\u0323\u0301', '', 'Ab\u0301')
         sheet = self.issue(row)

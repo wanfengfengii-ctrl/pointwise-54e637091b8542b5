@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from operator import itemgetter
+from operator import attrgetter
 
 from issue.normalization import canonical_order, normalize_view
 
@@ -14,15 +14,19 @@ class OccurrenceEvidence:
 
 
 def build_occurrence_evidence(original: bytes) -> tuple[OccurrenceEvidence, ...]:
+    # Each product carries its own source span and intra-character index.  The
+    # whole record must travel through the canonical reordering together;
+    # pairing the reordered view with the unordered products swaps provenance
+    # whenever two marks change relative order.
     products = []
     start = 0
     for source_character in original.decode("utf-8"):
         end = start + len(source_character.encode("utf-8"))
         for index, character in enumerate(normalize_view(source_character)):
-            products.append((character, start, end, index))
+            products.append(OccurrenceEvidence(0, character, start, end, index))
         start = end
-    ordered = canonical_order(products, itemgetter(0))
+    ordered = canonical_order(products, attrgetter("character"))
     return tuple(
-        OccurrenceEvidence(position, visible[0], *source[1:])
-        for position, (visible, source) in enumerate(zip(ordered, products))
+        OccurrenceEvidence(position, item.character, item.byte_start, item.byte_end, item.product_index)
+        for position, item in enumerate(ordered)
     )

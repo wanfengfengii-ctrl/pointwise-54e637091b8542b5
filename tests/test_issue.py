@@ -1,7 +1,7 @@
 import json
 
 from issue.issued_sheets import get_issued_sheet
-from issue.occurrence_evidence import OccurrenceEvidence
+from issue.occurrence_evidence import OccurrenceEvidence, build_occurrence_evidence
 from issue.offline_delivery import decode_proof_sheet, encode_proof_sheet
 from issue.proof_sheet import issue_proof_sheet
 from revision.freeze import FrozenRevision
@@ -25,6 +25,19 @@ class TestIssue(WorkroomTestCase):
         self.assertEqual(sheet.view, 'e\u0323\u0301\u0300\u0301')
         self.assertEqual([item.byte_start for item in sheet.occurrences], [0, 3, 1, 5, 7])
         self.assertEqual([item.product_index for item in sheet.occurrences], [0, 0, 0, 0, 0])
+
+    def test_reordering_keeps_each_product_provenance(self):
+        # Regression: canonical reordering must carry each product's own byte
+        # span and intra-character index.  The old implementation paired the
+        # reordered view with the unordered products and swapped the acute and
+        # dot-below provenance on 'é' + combining dot below.
+        evidence = build_occurrence_evidence('ẹ́'.encode('utf-8'))
+        self.assertEqual(tuple((item.character, item.byte_start, item.byte_end, item.product_index)
+                               for item in evidence), (
+            ('e', 0, 2, 0),
+            ('̣', 2, 4, 0),
+            ('́', 0, 2, 1),
+        ))
 
     def test_offline_roundtrip(self):
         row, = self.import_labels('é\u0323')
